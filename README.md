@@ -67,6 +67,15 @@
 
 ---
 
+## 使用说明与免责声明
+
+本项目为非官方社区辅助工具。使用前请阅读以下说明，并确认自己的部署方式符合所用平台的要求。
+
+- **账号与平台规则**：仅用于本人或已获明确授权的账号，遵守适用法律法规以及 GLaDOS、GitHub 和所选推送服务的服务条款。请自行确认平台是否允许相应的自动化使用方式。
+- **运行与奖励限制**：接口、验证流程、积分规则、服务额度和访问策略可能发生变化。测试通过或维护者账号运行成功，不构成持续可用、固定积分、补发差额、兑换成功或账号权益不受影响的保证；签到和奖励以平台实际记录为准。
+- **凭据与通知隐私**：请妥善保管 Cookie、Token、SendKey 等凭据，GitHub 部署时使用 Secrets，不要提交到代码、公开日志或 Issue。通知触发时，签到摘要可能包含邮箱、积分和剩余天数，并会发送给你配置的推送服务；配置前请了解该服务的数据处理规则。
+- **风险与责任范围**：本项目按“现状”提供。在适用法律允许的范围内，维护者和贡献者不对使用本项目产生的服务中断、数据或凭据泄露、积分及账号权益损失等承担赔偿责任。本说明不排除依法不得免除的责任。
+
 ## 💡 重要说明
 
 > 默认只使用仓库内置的 **GitHub Actions** 定时任务，无需创建外部 cron。
@@ -201,9 +210,16 @@ Cookie、邮箱或账号余额，也不会签到、兑换积分或发送推送�
 完整 Cookie 与 User-Agent 都已配置但仍失败时，请先核对以下信息：
 
 - 普通签到和只读诊断都会显示 `浏览器 User-Agent: 已配置` 或 `未配置，使用默认值`，
-  只显示是否配置，不输出具体值。Actions 从 **Variables** 读取 `GLADOS_USER_AGENT`；
-  如果只把它放在 **Secrets**，当前工作流不会读取。显示“已配置”也只证明值已传入，
-  不证明它与当前登录会话匹配。
+  不输出具体值。Actions 优先读取 **Variables** 中的 `GLADOS_USER_AGENT`；Variable
+  未设置或为空时，兼容读取同名 **Secret**。两处都配置时以 Variable 为准，更新时请注意
+  不要留下旧的 Variable。只含空格的 Variable 也会优先于 Secret，随后使用默认值；
+  请清空或删除它。两处都为空时仍使用默认值。同步工作流后此兼容才会生效。
+- 推荐只粘贴完整单行 User-Agent 的值，不要附带说明文字。脚本可自动去掉一对完整的
+  英文外层双引号及误复制的 `User-Agent:` 前缀；包含空格的完整浏览器值也兼容一对
+  英文外层单引号。自定义单个产品标识中的合法单引号会保留，只记录已规范化，不打印内容。
+  含内嵌换行、无效控制字符、不支持的字符、重复引号或不成对双引号时，会在任何账号请求、
+  签到、兑换和推送前报配置错误并停止，请重新复制对应浏览器的值。
+  显示“已配置”只证明配置已传入并通过本地格式检查，不证明它与当前登录会话匹配。
 - 提供失败运行的链接（或 commit SHA）、浏览器名称/版本、GitHub Actions 或本地运行、
   是否多账号，以及 `diagnose_only` 是否通过。日志中的 `code`、已知 `reason` 和
   `http_status` 可以帮助区分会话拒绝与网络错误。请勿公开 Cookie、Token、完整请求头或
@@ -218,6 +234,17 @@ Cookie、邮箱或账号余额，也不会签到、兑换积分或发送推送�
 `Automated check-in detected` 是服务端的拒绝结果，仅凭这句文案不能确定具体触发条件，
 也不能保证设置 User-Agent 后必然恢复。只读查询通过但实际签到仍被拒绝时，请保留脱敏
 结果并联系服务方确认会话或自动化使用策略，不要反复触发签到。
+
+### 签到只获得 1 积分（#28）
+
+2026-11-06 已核对官网控制台的新流程：签到前会获取一次性 challenge，等待后提交对应的
+nonce/proof。旧脚本仅提交 token，缺少这一步；请同步最新 `checkin.py`。新版本为每次尝试
+获取新验证，并在签发验证的同一域名提交；验证失败或过期时会停止本次提交并给出脱敏错误，
+不会静默退回旧流程。只读诊断仍只查询状态，不获取验证、不签到。
+
+服务端决定实际入账积分。接口返回 `Checkin! Got 1 Points` 且流水增加 1，说明已签到但
+本次奖励较低；不应把它当作网络失败反复补签。当天已经入账的积分不保证能补差，适配后的
+奖励数额需由下一次首次签到的服务端响应和积分流水验证。此项与 User-Agent 配置问题分别排查。
 
 ### 🎁 积分自动兑换（#11）
 
@@ -801,11 +828,14 @@ GitHub 的 schedule 不是实时调度器：高负载时可能延迟，极端情
 
 | 贡献者 | 贡献 | Pull Request |
 | --- | --- | --- |
+| [@Ch3nSir](https://github.com/Ch3nSir) | 添加 Server酱 Turbo / Server酱³ 推送支持，补充部署说明、NixOS 配置和通知回归测试。 | [#27](https://github.com/lankerr/2026-glados-checkin/pull/27) |
 | [@badpinkman](https://github.com/badpinkman) | 适配新版 `gld:sess` 会话与浏览器设备校验，完善 Cookie 获取、User-Agent 配置和认证失败提示，并提供真实运行验证。 | [#18](https://github.com/lankerr/2026-glados-checkin/pull/18) |
 | [@Unexpectedlyc](https://github.com/Unexpectedlyc) | 调整 README 的部署顺序与说明，减少 GitHub Actions 和外部定时器配置带来的误解。 | [#5](https://github.com/lankerr/2026-glados-checkin/pull/5) |
 | [@Initsnow](https://github.com/Initsnow) | 添加 Telegram 推送、通知级别与 NixOS Flake 支持，并修复 Telegram 消息格式问题。 | [#3](https://github.com/lankerr/2026-glados-checkin/pull/3) |
 
 同时感谢 [@LxFairy](https://github.com/LxFairy) 提交上游同步与冲突处理 PR（[#8](https://github.com/lankerr/2026-glados-checkin/pull/8)、[#9](https://github.com/lankerr/2026-glados-checkin/pull/9)，未合并），以及在 Issues 中提供报错日志、排查线索和复测反馈的用户。
+
+感谢 [@chengchang1987-cloud](https://github.com/chengchang1987-cloud) 在 [Issue #28](https://github.com/lankerr/2026-glados-checkin/issues/28) 提供积分流水、challenge 排查证据和[参考脚本](https://github.com/lankerr/2026-glados-checkin/issues/28#issuecomment-6676702004)。参考脚本的核心 proof 算法与已合并的 #31 一致；本次进一步采纳日志即时刷新（`flush=True`）及 2.7 秒等待时间（在 2.5 秒基础上增加 0.2 秒余量）。原有的 nonce/TTL 校验、同域提交、失败时不回退旧签到流程、User-Agent 兼容和推送行为均保留。这两项改进不代表首次签到奖励已恢复，仍需以下一次首次签到返回及实际积分入账核验。
 
 特别感谢 @badpinkman 对 2026 年 9 月认证故障的排查与修复，帮助本项目恢复正常签到。
 
@@ -863,7 +893,7 @@ MIT
 
 **Made with ❤️ for GLaDOS users in 2026**
 
-**🔧 本项目最近一次维护验证：2026-10-25**
+**🔧 本项目最近一次维护验证：2026-11-06**
 
 **⭐ Star 一下，支持作者持续更新！⭐**
 
